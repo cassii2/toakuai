@@ -1,9 +1,9 @@
-use std::{convert::Infallible, time::Duration};
+mod paths;
+mod reqs;
 
+use paths::AllPaths;
 use serde::{Deserialize, Serialize};
-use tokio::time::interval;
-use tokio_stream::{wrappers::IntervalStream, StreamExt};
-use warp::{sse, Filter};
+use warp::{filters::BoxedFilter, Filter};
 
 #[derive(Deserialize, Serialize)]
 struct Myreq {
@@ -14,16 +14,6 @@ struct Myreq {
 #[tokio::main]
 async fn main() {
     println!("Hello, world!");
-    let hello = warp::path("hello").map(|| {
-        let mut counter: u64 = 0;
-        let interval = interval(Duration::from_secs(1));
-        let stream = IntervalStream::new(interval);
-        let event_stream = stream.map(move |_| {
-            counter += 1;
-            sse_counter(counter)
-        });
-        warp::sse::reply(event_stream)
-    });
     let again = warp::path("again")
         .map(|| println!("Logging"))
         .untuple_one()
@@ -42,7 +32,7 @@ async fn main() {
             warp::reply::json(&jsonreq)
         });
 
-    let routes_get = warp::get().and(hello.or(again).or(root));
+    let routes_get = warp::get().and(again.or(root));
     let routes_post = warp::post().and(api);
 
     let routes_all = routes_get.or(routes_post);
@@ -59,6 +49,14 @@ async fn main() {
     );
 }
 
-fn sse_counter(counter: u64) -> Result<sse::Event, Infallible> {
-    Ok(sse::Event::default().data(counter.to_string()))
+fn init() -> AllPaths<BoxedFilter<(String,)>> {
+    let api = warp::path("api")
+        .and(warp::body::content_length_limit(1024 * 16))
+        .and(warp::body::json())
+        .map(|mut jsonreq: Myreq| {
+            jsonreq.num = 25;
+            warp::reply::json(&jsonreq)
+        });
+    // AllPaths::<(String,)>::new(warp::get().map(|| format!("")).boxed())
+    todo!()
 }
