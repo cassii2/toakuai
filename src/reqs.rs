@@ -9,10 +9,10 @@ struct User {
 #[derive(Serialize, Deserialize)]
 struct Word {
     id: u32,
-    author: User,
+    author: u32,
     word: String,
     definition: String,
-    forked_from: Option<Box<Word>>,
+    forked_from: Option<u32>,
     lang: [char; 8],
     gloss: [String; 1],
     frame: [[char; 3]; 1],
@@ -23,16 +23,23 @@ struct Word {
 #[derive(Serialize, Deserialize)]
 struct Comment {
     id: u32,
-    author: User,
-    parent_word: Word,
-    parent_comment: Option<Box<Comment>>,
+    author: u32,
+    parent_word: u32,
+    parent_comment: Option<u32>,
     content: String,
 }
 
 #[derive(Serialize, Deserialize)]
 struct Vote {
-    author: User,
-    entry_word: Option<Word>,
-    entry_comment: Option<Comment>,
+    author: u32,
+    entry_word: Option<u32>,
+    entry_comment: Option<u32>,
     is_upvote: bool,
+}
+
+enum ReqType {
+    User(User),
+    Word(Word),
+    Comment(Comment),
+    Vote(Vote),
 }
