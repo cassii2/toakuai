@@ -1,9 +1,9 @@
-mod paths;
 mod reqs;
 
-use paths::AllPaths;
 use serde::{Deserialize, Serialize};
-use warp::{filters::BoxedFilter, Filter};
+use warp::Filter;
+
+const MYPORT: u16 = 3000;
 
 #[derive(Deserialize, Serialize)]
 struct Myreq {
@@ -49,14 +49,22 @@ async fn main() {
     );
 }
 
-fn init() -> AllPaths<BoxedFilter<(String,)>> {
-    let api = warp::path("api")
-        .and(warp::body::content_length_limit(1024 * 16))
-        .and(warp::body::json())
-        .map(|mut jsonreq: Myreq| {
-            jsonreq.num = 25;
-            warp::reply::json(&jsonreq)
-        });
-    // AllPaths::<(String,)>::new(warp::get().map(|| format!("")).boxed())
-    todo!()
+fn init() -> impl warp::Future<Output = ()> {
+    let api = warp::post().and(
+        warp::path("api")
+            .and(warp::body::content_length_limit(1024 * 16))
+            .and(warp::body::json())
+            .map(|mut jsonreq: Myreq| {
+                jsonreq.num = 25;
+                warp::reply::json(&jsonreq)
+            }),
+    );
+    let index = warp::get()
+        .and(warp::path::end().or(warp::path("index.html")))
+        .map(|_| format!(""));
+
+    let all = api.or(index).boxed();
+    let server = warp::serve(all).run(([127, 0, 0, 1], MYPORT));
+
+    return server;
 }
