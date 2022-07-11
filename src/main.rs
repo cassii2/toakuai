@@ -1,6 +1,9 @@
 mod reqs;
 
+use std::process::exit;
+
 use serde::{Deserialize, Serialize};
+use sqlx::postgres::PgPoolOptions;
 use warp::Filter;
 
 const MYPORT: u16 = 3000;
@@ -14,6 +17,24 @@ struct Myreq {
 #[tokio::main]
 async fn main() {
     println!("Hello, world!");
+
+    let pool = match PgPoolOptions::new()
+        .max_connections(5)
+        .connect("postgres://postgres@localhost/toaq")
+        .await
+    {
+        Ok(x) => x,
+        Err(_) => {
+            println!("Error!!");
+            exit(-1);
+        }
+    };
+    let row: (sqlx::types::Uuid, String) = sqlx::query_as("SELECT * FROM users")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    println!("UUID: {}, Username: {}", row.0, row.1);
+
     let again = warp::path("again")
         .map(|| println!("Logging"))
         .untuple_one()
@@ -38,7 +59,7 @@ async fn main() {
     let routes_all = routes_get.or(routes_post);
 
     let _ = tokio::join!(
-        tokio::spawn(warp::serve(routes_all).run(([127, 0, 0, 1], 3000))),
+        tokio::spawn(warp::serve(routes_all).run(([127, 0, 0, 1], MYPORT))),
         // tokio::spawn(
         //     warp::serve(routes_all)
         //         .tls()
@@ -49,7 +70,7 @@ async fn main() {
     );
 }
 
-fn init() -> impl warp::Future<Output = ()> {
+fn initserver() {
     let api = warp::post().and(
         warp::path("api")
             .and(warp::body::content_length_limit(1024 * 16))
@@ -64,7 +85,7 @@ fn init() -> impl warp::Future<Output = ()> {
         .map(|_| format!(""));
 
     let all = api.or(index).boxed();
-    let server = warp::serve(all).run(([127, 0, 0, 1], MYPORT));
 
-    return server;
+    //TODO: make this return something so that we can run the server at some point
+    todo!()
 }

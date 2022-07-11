@@ -1,4 +1,7 @@
+use std::result::Result;
+
 use serde::{Deserialize, Serialize};
+use sqlx::{postgres::PgPoolOptions, Connection};
 
 #[derive(Serialize, Deserialize)]
 pub struct User {
@@ -35,6 +38,15 @@ pub struct Vote {
     entry_word: Option<u32>,
     entry_comment: Option<u32>,
     is_upvote: bool,
+}
+
+pub async fn init_sql() -> Result<(), sqlx::Error> {
+    // This project uses PostgreSQL
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect("postgres://postgres@localhost/toaq")
+        .await?;
+    todo!()
 }
 
 pub enum Reqs {
