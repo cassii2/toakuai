@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-struct User {
+pub struct User {
     id: u32,
     username: String,
 }
 
 #[derive(Serialize, Deserialize)]
-struct Word {
+pub struct Word {
     id: u32,
     author: u32,
     word: String,
@@ -21,7 +21,7 @@ struct Word {
 }
 
 #[derive(Serialize, Deserialize)]
-struct Comment {
+pub struct Comment {
     id: u32,
     author: u32,
     parent_word: u32,
@@ -30,16 +30,37 @@ struct Comment {
 }
 
 #[derive(Serialize, Deserialize)]
-struct Vote {
+pub struct Vote {
     author: u32,
     entry_word: Option<u32>,
     entry_comment: Option<u32>,
     is_upvote: bool,
 }
 
-enum ReqType {
+pub enum Reqs {
     User(User),
     Word(Word),
     Comment(Comment),
     Vote(Vote),
+}
+pub enum ReqType {
+    User,
+    Word,
+    Comment,
+    Vote,
+}
+
+// Get from SQL database
+pub async fn get(request_type: ReqType, id: u32) -> Reqs {
+    match request_type {
+        ReqType::User => todo!(),
+        ReqType::Word => todo!(),
+        ReqType::Comment => todo!(),
+        ReqType::Vote => todo!(),
+    }
+}
+
+// Return whether it worked or not
+pub async fn set(request_data: Reqs) -> bool {
+    todo!()
 }
