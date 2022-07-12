@@ -36,3 +36,9 @@ CREATE TABLE votes (
 );
 CREATE INDEX votes_entry_word_index ON votes (entry_word);
 CREATE INDEX votes_entry_comment_index ON votes (entry_comment);
+
+CREATE SCHEMA toaqschema;
+SET search_path = toaqschema;
+
+GRANT USAGE ON SCHEMA toaqschema TO toakuai;
+GRANT INSERT, UPDATE, DELETE, TRUNCATE ON TABLES TO toakuai;

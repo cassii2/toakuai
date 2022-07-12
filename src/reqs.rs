@@ -3,10 +3,10 @@ use std::result::Result;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, Connection};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, sqlx::FromRow)]
 pub struct User {
-    id: u32,
-    username: String,
+    pub id: String, //u128 hyphenated
+    pub username: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -44,7 +44,7 @@ pub async fn init_sql() -> Result<(), sqlx::Error> {
     // This project uses PostgreSQL
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect("postgres://postgres@localhost/toaq")
+        .connect("postgres://toakuai@localhost/toaq")
         .await?;
     todo!()
 }
