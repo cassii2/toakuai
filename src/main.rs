@@ -22,22 +22,13 @@ struct Myreq {
 async fn main() {
     println!("Hello, world!");
 
-    let pool = match PgPoolOptions::new()
+    let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect("postgres://toakuai@localhost/toaq")
         .await
-    {
-        Ok(x) => x,
-        Err(_) => {
-            println!("Error!!");
-            exit(-1);
-        }
-    };
+        .unwrap();
 
-    let mut user = reqs::User {
-        id: String::new(),
-        username: String::new(),
-    };
+    let mut user = reqs::User::new();
 
     let mut rows = sqlx::query("SELECT * FROM users").fetch(&pool);
 
@@ -45,7 +36,7 @@ async fn main() {
         let uuid: sqlx::types::Uuid = row.get(0);
         user.id = uuid.as_hyphenated().to_string();
         user.username = row.get(1);
-        println!("{}, {}", user.id, user.username);
+        println!("{:?}", user);
     }
 
     // let again = warp::path("again")

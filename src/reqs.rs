@@ -1,26 +1,52 @@
 use std::result::Result;
 
-use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, Connection};
+use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
+use sqlx::postgres::PgPoolOptions;
+use sqlx::types::Uuid;
 
-#[derive(Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct User {
     pub id: String, //u128 hyphenated
     pub username: String,
 }
+impl User {
+    pub fn new() -> Self {
+        Self {
+            id: String::new(),
+            username: String::new(),
+        }
+    }
+}
 
-#[derive(Serialize, Deserialize)]
+// Can't derive serialize from serde, when using UUIDs. So we use String instead
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Word {
-    id: u32,
-    author: u32,
+    id: String,     //UUID
+    author: String, //UUID
     word: String,
     definition: String,
-    forked_from: Option<u32>,
+    forked_from: Option<String>, //UUID
     lang: [char; 8],
     gloss: [String; 1],
     frame: [[char; 3]; 1],
     created: i64, // chrono::Utc.timestamp()
     edited: Option<i64>,
+}
+impl Word {
+    pub fn new() -> Self {
+        Self {
+            id: String::new(),
+            author: String::new(),
+            word: String::new(),
+            definition: String::new(),
+            forked_from: None,
+            lang: [' '; 8],
+            gloss: [String::new(); 1],
+            frame: [[' '; 3]; 1],
+            created: 0, // chrono::Utc.timestamp()
+            edited: None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
