@@ -46,7 +46,8 @@ async fn main() {
 
     let mut rows = sqlx::query("SELECT * FROM users")
         .map(move |row: PgRow| {
-            user.id = row.get(0).hyphenated().to_string();
+            let uuid: sqlx::types::Uuid = row.get(0);
+            user.id = uuid.as_hyphenated().to_string();
             user.username = row.get(1);
             println!("{}, {}", user.id, user.username);
         })
@@ -77,8 +78,6 @@ async fn main() {
 
     // let routes_get = warp::get().and(again.or(root));
     // let routes_post = warp::post().and(api);
-
-    // let routes_all = routes_get.or(routes_post);
 
     // let _ = tokio::join!(
     //     tokio::spawn(warp::serve(routes_all).run(([127, 0, 0, 1], MYPORT))),
