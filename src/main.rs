@@ -34,29 +34,19 @@ async fn main() {
         }
     };
 
-    // let row: (sqlx::types::Uuid, String) = sqlx::query_as("SELECT * FROM users")
-    //     .fetch_one(&pool)
-    //     .await
-    //     .unwrap();
-    // println!("UUID: {}, Username: {}", row.0, row.1);
     let mut user = reqs::User {
         id: String::new(),
         username: String::new(),
     };
 
-    let mut rows = sqlx::query("SELECT * FROM users")
-        .map(move |row: PgRow| {
-            let uuid: sqlx::types::Uuid = row.get(0);
-            user.id = uuid.as_hyphenated().to_string();
-            user.username = row.get(1);
-            println!("{}, {}", user.id, user.username);
-        })
-        .fetch(&pool);
-    while let Some(_) = rows.try_next().await.unwrap() {}
+    let mut rows = sqlx::query("SELECT * FROM users").fetch(&pool);
 
-    // while let Some(row) = stream.try_next().await.unwrap() {
-    //     println!("ID: {}, Username: {}", row.id, row.username);
-    // }
+    while let Some(row) = rows.try_next().await.unwrap() {
+        let uuid: sqlx::types::Uuid = row.get(0);
+        user.id = uuid.as_hyphenated().to_string();
+        user.username = row.get(1);
+        println!("{}, {}", user.id, user.username);
+    }
 
     // let again = warp::path("again")
     //     .map(|| println!("Logging"))
