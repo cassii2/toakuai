@@ -1,13 +1,9 @@
 mod reqs;
 
-use std::process::exit;
-
 use futures::TryStreamExt;
+use reqs::*;
 use serde::{Deserialize, Serialize};
-use sqlx::{
-    postgres::{PgPoolOptions, PgRow},
-    Row,
-};
+use sqlx::{postgres::PgPoolOptions, types::Uuid, Row};
 use warp::Filter;
 
 const MYPORT: u16 = 3000;
@@ -28,14 +24,12 @@ async fn main() {
         .await
         .unwrap();
 
-    let mut user = reqs::User::new();
+    let mut user = User::<Uuid>::new();
 
     let mut rows = sqlx::query("SELECT * FROM users").fetch(&pool);
-
-    while let Some(row) = rows.try_next().await.unwrap() {
-        let uuid: sqlx::types::Uuid = row.get(0);
-        user.id = uuid.as_hyphenated().to_string();
-        user.username = row.get(1);
+    while let Some(row) = &rows.try_next().await.unwrap() {
+        user.id = row.get("id");
+        user.username = row.get("username");
         println!("{:?}", user);
     }
 
