@@ -1,8 +1,9 @@
-use std::result::Result;
+use std::process::exit;
 
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::types::Uuid;
+use sqlx::{Pool, Postgres, Row};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User<T> {
@@ -10,6 +11,7 @@ pub struct User<T> {
     pub username: String,
 }
 impl<T> User<T> {
+    #[inline]
     fn _new(empty: T) -> Self {
         Self {
             id: empty,
@@ -39,6 +41,36 @@ impl User<Uuid> {
     }
     pub fn string(self) -> User<String> {
         self.map(|x| x.as_hyphenated().to_string())
+    }
+
+    pub async fn get_by_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
+        match sqlx::query("SELECT * FROM users WHERE id = $1")
+            .bind(uuid)
+            .fetch_one(pool)
+            .await
+        {
+            Ok(x) => Ok(Self {
+                id: x.get("id"),
+                username: x.get("username"),
+            }),
+            Err(x) => Err(x),
+        }
+    }
+    pub async fn get_by_username(
+        pool: &Pool<Postgres>,
+        username: String,
+    ) -> Result<Self, sqlx::Error> {
+        match sqlx::query("SELECT * FROM users WHERE username = $1")
+            .bind(username)
+            .fetch_one(pool)
+            .await
+        {
+            Ok(x) => Ok(Self {
+                id: x.get("id"),
+                username: x.get("username"),
+            }),
+            Err(x) => Err(x),
+        }
     }
 }
 
@@ -105,9 +137,31 @@ impl Word<Uuid> {
     pub fn string(self) -> Word<String> {
         self.map(|x| x.as_hyphenated().to_string())
     }
+
+    pub async fn get_by_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
+        match sqlx::query("SELECT * FROM users WHERE id = $1")
+            .bind(uuid)
+            .fetch_one(pool)
+            .await
+        {
+            Ok(x) => Ok(Self {
+                id: x.get("id"),
+                author: x.get("username"),
+                word: x.get("word"),
+                definition: x.get("definition"),
+                forked_from: x.get("forked_from"),
+                lang: todo!(),
+                gloss: todo!(),
+                frame: todo!(),
+                created: todo!(),
+                edited: todo!(),
+            }),
+            Err(x) => Err(x),
+        }
+    }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Comment<T> {
     id: T,
     author: T,
@@ -116,6 +170,7 @@ pub struct Comment<T> {
     content: String,
 }
 impl<T: Clone> Comment<T> {
+    #[inline]
     fn _new(empty: T) -> Self {
         Self {
             id: empty.clone(),
@@ -139,6 +194,10 @@ impl<T: Clone> Comment<T> {
             content: self.content,
         }
     }
+
+    pub fn get_name() -> String {
+        String::from("comment")
+    }
 }
 impl Comment<String> {
     pub fn new() -> Self {
@@ -157,7 +216,7 @@ impl Comment<Uuid> {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Vote<T> {
     author: T,
     entry_word: Option<T>,
@@ -165,6 +224,7 @@ pub struct Vote<T> {
     is_upvote: bool,
 }
 impl<T> Vote<T> {
+    #[inline]
     fn _new(empty: T) -> Self {
         Self {
             author: empty,
@@ -189,6 +249,10 @@ impl<T> Vote<T> {
             is_upvote: self.is_upvote,
         }
     }
+
+    pub fn get_name() -> String {
+        String::from("vote")
+    }
 }
 impl Vote<String> {
     pub fn new() -> Self {
@@ -207,11 +271,24 @@ impl Vote<Uuid> {
     }
 }
 
-pub async fn init_sql() -> Result<(), sqlx::Error> {
+pub enum ToakuaiReq<T> {
+    User(User<T>),
+    Word(Word<T>),
+    Comment(Comment<T>),
+    Vote(Vote<T>),
+}
+
+pub async fn init_sql() -> sqlx::Pool<sqlx::Postgres> {
     // This project uses PostgreSQL
-    let pool = PgPoolOptions::new()
+    match PgPoolOptions::new()
         .max_connections(5)
         .connect("postgres://toakuai@localhost/toaq")
-        .await?;
-    todo!()
+        .await
+    {
+        Err(x) => {
+            println!("Error connecting to SQL Server!\n{}", x);
+            exit(-1);
+        }
+        Ok(x) => x,
+    }
 }

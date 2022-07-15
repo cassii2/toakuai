@@ -3,7 +3,7 @@ mod reqs;
 use futures::TryStreamExt;
 use reqs::*;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, types::Uuid, Row};
+use sqlx::{types::Uuid, Row};
 use warp::Filter;
 
 const MYPORT: u16 = 3000;
@@ -18,11 +18,7 @@ struct Myreq {
 async fn main() {
     println!("Hello, world!");
 
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect("postgres://toakuai@localhost/toaq")
-        .await
-        .unwrap();
+    let pool = init_sql().await;
 
     let mut user = User::<Uuid>::new();
 
