@@ -42,14 +42,13 @@ impl User<Uuid> {
     }
 }
 
-// Can't derive serialize from serde, when using UUIDs. So we use String instead
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Word<T> {
-    id: T,     //UUID
-    author: T, //UUID
+    id: T,
+    author: T,
     word: String,
     definition: String,
-    forked_from: Option<T>, //UUID
+    forked_from: Option<T>,
     lang: [char; 8],
     gloss: Vec<String>,
     frame: Vec<[char; 3]>,
