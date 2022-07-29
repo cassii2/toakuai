@@ -1,5 +1,6 @@
 use std::process::exit;
 
+use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::types::Uuid;
@@ -34,6 +35,24 @@ impl User<String> {
     pub fn uuid(self) -> User<Uuid> {
         self.map(|x| Uuid::parse_str(&x).unwrap())
     }
+    pub fn from_row(row: &sqlx::postgres::PgRow) -> Self {
+        User::<Uuid>::from_row(row).string()
+    }
+    pub async fn get_by_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
+        match User::<Uuid>::get_by_uuid(pool, uuid).await {
+            Ok(x) => Ok(x.string()),
+            Err(x) => Err(x),
+        }
+    }
+    pub async fn get_by_username(
+        pool: &Pool<Postgres>,
+        username: String,
+    ) -> Result<Self, sqlx::Error> {
+        match User::<Uuid>::get_by_username(pool, username).await {
+            Ok(x) => Ok(x.string()),
+            Err(x) => Err(x),
+        }
+    }
 }
 impl User<Uuid> {
     pub fn new() -> Self {
@@ -49,10 +68,7 @@ impl User<Uuid> {
             .fetch_one(pool)
             .await
         {
-            Ok(x) => Ok(Self {
-                id: x.get("id"),
-                username: x.get("username"),
-            }),
+            Ok(x) => Ok(User::<Uuid>::from_row(&x)),
             Err(x) => Err(x),
         }
     }
@@ -65,11 +81,14 @@ impl User<Uuid> {
             .fetch_one(pool)
             .await
         {
-            Ok(x) => Ok(Self {
-                id: x.get("id"),
-                username: x.get("username"),
-            }),
+            Ok(x) => Ok(User::<Uuid>::from_row(&x)),
             Err(x) => Err(x),
+        }
+    }
+    pub fn from_row(row: &sqlx::postgres::PgRow) -> Self {
+        Self {
+            username: row.get("username"),
+            id: row.get("id"),
         }
     }
 }
@@ -132,6 +151,9 @@ impl Word<String> {
     pub fn uuid(self) -> Word<Uuid> {
         self.map(|x| Uuid::parse_str(&x).unwrap())
     }
+    pub fn from_row(row: &sqlx::postgres::PgRow) -> Self {
+        Word::<Uuid>::from_row(row).string()
+    }
 }
 impl Word<Uuid> {
     pub fn new() -> Self {
@@ -142,12 +164,12 @@ impl Word<Uuid> {
     }
 
     pub async fn get_by_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
-        match sqlx::query("SELECT * FROM users WHERE id = $1")
+        match sqlx::query("SELECT * FROM words WHERE id = $1")
             .bind(uuid)
             .fetch_one(pool)
             .await
         {
-            Ok(x) => Ok(Word::from_row(&x)),
+            Ok(x) => Ok(Word::<Uuid>::from_row(&x)),
             Err(x) => Err(x),
         }
     }
@@ -202,10 +224,6 @@ impl<T: Clone> Comment<T> {
             content: self.content,
         }
     }
-
-    pub fn get_name() -> String {
-        String::from("comment")
-    }
 }
 impl Comment<String> {
     pub fn new() -> Self {
@@ -221,6 +239,37 @@ impl Comment<Uuid> {
     }
     pub fn string(self) -> Comment<String> {
         self.map(|x| x.as_hyphenated().to_string())
+    }
+    pub fn from_row(row: &sqlx::postgres::PgRow) -> Self {
+        Self {
+            id: row.get("id"),
+            author: row.get("author"),
+            parent_word: row.get("parent_word"),
+            parent_comment: row.get("parent_comment"),
+            content: row.get("content"),
+        }
+    }
+    pub async fn from_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
+        match sqlx::query("SELECT * FROM comments WHERE id = $1")
+            .bind(uuid)
+            .fetch_one(pool)
+            .await
+        {
+            Ok(x) => Ok(Comment::<Uuid>::from_row(&x)),
+            Err(x) => Err(x),
+        }
+    }
+    pub async fn from_word(pool: &Pool<Postgres>, word: Uuid) -> Result<Vec<Self>, sqlx::Error> {
+        // todo
+        let mut ret = Vec::<Comment<Uuid>>::new();
+        let mut query = sqlx::query("SELECT * FROM comments WHERE parent_word = $1")
+            .bind(word)
+            .fetch(pool);
+        while let Some(row) = &query.try_next().await? {
+            ret.push(Comment::<Uuid>::from_row(row));
+        }
+
+        return Ok(ret);
     }
 }
 
