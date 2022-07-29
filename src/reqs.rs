@@ -76,29 +76,29 @@ impl User<Uuid> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Word<T> {
-    id: T,
-    author: T,
-    word: String,
-    definition: String,
-    forked_from: Option<T>,
-    lang: [char; 8],
-    gloss: Vec<String>,
-    frame: Vec<[char; 3]>,
-    created: i64, // chrono::Utc.timestamp()
-    edited: Option<i64>,
+    pub id: T,
+    pub author: Option<T>,
+    pub word: String,
+    pub definition: String,
+    pub forked_from: Option<T>,
+    pub lang: String,
+    pub gloss: Vec<String>,
+    pub frame: Vec<String>,
+    pub created: i64, // chrono::Utc.timestamp()
+    pub edited: Option<i64>,
 }
 impl<T: Clone> Word<T> {
     #[inline]
     fn _new(empty: T) -> Self {
         Self {
             id: empty.clone(),
-            author: empty,
+            author: None,
             word: String::new(),
             definition: String::new(),
             forked_from: None,
-            lang: [' '; 8],
+            lang: String::new(),
             gloss: vec![String::new()],
-            frame: vec![[' '; 3]],
+            frame: vec![String::new()],
             created: 0, // chrono::Utc.timestamp()
             edited: None,
         }
@@ -107,7 +107,10 @@ impl<T: Clone> Word<T> {
     fn map<U>(self, f: impl Fn(T) -> U) -> Word<U> {
         Word {
             id: f(self.id),
-            author: f(self.author),
+            author: match self.author {
+                Some(x) => Some(f(x)),
+                None => None,
+            },
             word: self.word,
             definition: self.definition,
             forked_from: match self.forked_from {
@@ -131,7 +134,7 @@ impl Word<String> {
     }
 }
 impl Word<Uuid> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::_new(Uuid::nil())
     }
     pub fn string(self) -> Word<String> {
@@ -144,19 +147,24 @@ impl Word<Uuid> {
             .fetch_one(pool)
             .await
         {
-            Ok(x) => Ok(Self {
-                id: x.get("id"),
-                author: x.get("username"),
-                word: x.get("word"),
-                definition: x.get("definition"),
-                forked_from: x.get("forked_from"),
-                lang: todo!(),
-                gloss: todo!(),
-                frame: todo!(),
-                created: todo!(),
-                edited: todo!(),
-            }),
+            Ok(x) => Ok(Word::from_row(&x)),
             Err(x) => Err(x),
+        }
+    }
+    pub fn from_row(row: &sqlx::postgres::PgRow) -> Self {
+        Self {
+            id: row.get("id"),
+            word: row.get("word"),
+            author: row.get("author"),
+            definition: row.get("definition"),
+            forked_from: row.get("forked_from"),
+            lang: row.get("lang"),
+            gloss: row.get("gloss"),
+            frame: row.get("frame"),
+            created: row
+                .get::<sqlx::types::chrono::NaiveDateTime, _>("created")
+                .timestamp(),
+            edited: row.get("edited"),
         }
     }
 }

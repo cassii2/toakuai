@@ -29,6 +29,24 @@ async fn main() {
         println!("{:?}", user);
     }
 
+    let mut words = sqlx::query("SELECT * FROM words").fetch(&pool);
+    while let Some(row) = &words.try_next().await.unwrap() {
+        // word.id = row.get("id");
+        // word.word = row.get("word");
+        // word.author = row.get("author");
+        // word.definition = row.get("definition");
+        // word.forked_from = row.get("forked_from");
+        // word.lang = row.get("lang");
+        // word.gloss = row.get("gloss");
+        // word.frame = row.get("frame");
+        // word.created = row
+        //     .get::<sqlx::types::chrono::NaiveDateTime, _>("created")
+        //     .timestamp();
+        // word.edited = row.get("edited");
+        let word = Word::from_row(row);
+        println!("{:?}", word);
+    }
+
     // let again = warp::path("again")
     //     .map(|| println!("Logging"))
     //     .untuple_one()
