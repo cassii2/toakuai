@@ -45,7 +45,12 @@ impl Vote<String> {
         Self::_new(String::new())
     }
     pub fn uuid(self) -> Vote<Uuid> {
-        self.map(|x| Uuid::parse_str(&x).unwrap())
+        self.map(|x| {
+            Uuid::parse_str(&x).unwrap_or_else(|e| {
+                eprintln!("Could not parse Vote UUID: {}\nError: {}", x, e);
+                Uuid::nil()
+            })
+        })
     }
 }
 impl Vote<Uuid> {

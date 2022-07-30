@@ -42,7 +42,12 @@ impl Comment<String> {
         Self::_new(String::new())
     }
     pub fn uuid(self) -> Comment<Uuid> {
-        self.map(|x| Uuid::parse_str(&x).unwrap())
+        self.map(|x| {
+            Uuid::parse_str(&x).unwrap_or_else(|e| {
+                eprintln!("Could not parse Comment UUID: {}\nError: {}", x, e);
+                Uuid::nil()
+            })
+        })
     }
 }
 impl Comment<Uuid> {

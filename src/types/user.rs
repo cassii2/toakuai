@@ -30,25 +30,24 @@ impl User<String> {
         Self::_new(String::new())
     }
     pub fn uuid(self) -> User<Uuid> {
-        self.map(|x| Uuid::parse_str(&x).unwrap())
+        self.map(|x| {
+            Uuid::parse_str(&x).unwrap_or_else(|e| {
+                eprintln!("Could not parse User UUID: {}\nError: {}", x, e);
+                Uuid::nil()
+            })
+        })
     }
     pub fn from_row(row: &sqlx::postgres::PgRow) -> Self {
         User::<Uuid>::from_row(row).string()
     }
     pub async fn from_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
-        match User::<Uuid>::from_uuid(pool, uuid).await {
-            Ok(x) => Ok(x.string()),
-            Err(x) => Err(x),
-        }
+        Ok(User::<Uuid>::from_uuid(pool, uuid).await?.string())
     }
     pub async fn from_username(
         pool: &Pool<Postgres>,
         username: String,
     ) -> Result<Self, sqlx::Error> {
-        match User::<Uuid>::from_username(pool, username).await {
-            Ok(x) => Ok(x.string()),
-            Err(x) => Err(x),
-        }
+        Ok(User::<Uuid>::from_username(pool, username).await?.string())
     }
 }
 impl User<Uuid> {

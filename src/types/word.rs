@@ -59,10 +59,18 @@ impl Word<String> {
         Self::_new(String::new())
     }
     pub fn uuid(self) -> Word<Uuid> {
-        self.map(|x| Uuid::parse_str(&x).unwrap())
+        self.map(|x| {
+            Uuid::parse_str(&x).unwrap_or_else(|e| {
+                eprintln!("Could not parse Word UUID: {}\nError: {}", x, e);
+                Uuid::nil()
+            })
+        })
     }
     pub fn from_row(row: &sqlx::postgres::PgRow) -> Self {
         Word::<Uuid>::from_row(row).string()
+    }
+    pub async fn from_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
+        Ok(Word::<Uuid>::from_uuid(pool, uuid).await?.string())
     }
 }
 impl Word<Uuid> {
