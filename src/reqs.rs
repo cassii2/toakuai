@@ -1,14 +1,6 @@
-use crate::{Comment, User, Vote, Word};
 use std::process::exit;
 
 use sqlx::postgres::PgPoolOptions;
-
-pub enum ToakuaiReq<T> {
-    User(User<T>),
-    Word(Word<T>),
-    Comment(Comment<T>),
-    Vote(Vote<T>),
-}
 
 pub async fn init_sql() -> sqlx::Pool<sqlx::Postgres> {
     // This project uses PostgreSQL
