@@ -1,7 +1,7 @@
-pub mod reqs;
+pub mod sql;
 pub mod types;
 
-use crate::reqs::init_sql;
+use crate::sql::init_sql;
 use crate::types::{comment::Comment, user::User, vote::Vote, word::Word};
 use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
