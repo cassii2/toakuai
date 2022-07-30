@@ -1,3 +1,4 @@
+use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use sqlx::{types::Uuid, Pool, Postgres};
@@ -58,7 +59,7 @@ impl Word<String> {
     pub fn new() -> Self {
         Self::_new(String::new())
     }
-    pub fn uuid(&self) -> Word<Uuid> {
+    pub fn uuid(self) -> Word<Uuid> {
         self.map(|x| {
             Uuid::parse_str(&x).unwrap_or_else(|e| {
                 eprintln!("Could not parse Word UUID: {}\nError: {}", x, e);
@@ -72,8 +73,21 @@ impl Word<String> {
     pub async fn from_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
         Ok(Word::<Uuid>::from_uuid(pool, uuid).await?.string())
     }
-    pub async fn count_upvotes(&self, pool: &Pool<Postgres>) -> Result<u64, sqlx::Error> {
-        Word::<Uuid>::count_upvotes(&self.uuid(), pool).await
+
+    pub async fn count_votes(&self, pool: &Pool<Postgres>) -> Result<(u64, u64), sqlx::Error> {
+        let mut votes = sqlx::query("SELECT * FROM votes WHERE entry_word = $1")
+            .bind(self.id.clone())
+            .fetch(pool);
+        let mut up = 0;
+        let mut down = 0;
+        while let Some(row) = &votes.try_next().await? {
+            if row.get::<bool, _>("is_upvote") == true {
+                up += 1;
+            } else {
+                down += 1;
+            }
+        }
+        Ok((up, down))
     }
 }
 impl Word<Uuid> {
@@ -110,13 +124,21 @@ impl Word<Uuid> {
             edited: row.get("edited"),
         }
     }
-    pub async fn count_upvotes(&self, pool: &Pool<Postgres>) -> Result<u64, sqlx::Error> {
-        Ok(
-            sqlx::query("SELECT * FROM votes WHERE entry_word = $1 AND is_upvote = TRUE")
-                .bind(self.id)
-                .execute(pool)
-                .await?
-                .rows_affected(),
-        )
+
+    // returns (upvotes, downvotes)
+    pub async fn count_votes(&self, pool: &Pool<Postgres>) -> Result<(u64, u64), sqlx::Error> {
+        let mut votes = sqlx::query("SELECT * FROM votes WHERE entry_word = $1")
+            .bind(self.id)
+            .fetch(pool);
+        let mut up = 0;
+        let mut down = 0;
+        while let Some(row) = &votes.try_next().await? {
+            if row.get::<bool, _>("is_upvote") == true {
+                up += 1;
+            } else {
+                down += 1;
+            }
+        }
+        Ok((up, down))
     }
 }
