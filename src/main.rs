@@ -1,7 +1,9 @@
-mod reqs;
+pub mod reqs;
+pub mod types;
 
+use crate::reqs::init_sql;
+use crate::types::{comment::Comment, user::User, vote::Vote, word::Word};
 use futures::TryStreamExt;
-use reqs::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{types::Uuid, Row};
 use warp::Filter;
