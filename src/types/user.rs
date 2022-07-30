@@ -59,27 +59,23 @@ impl User<Uuid> {
     }
 
     pub async fn from_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
-        match sqlx::query("SELECT * FROM users WHERE id = $1")
-            .bind(uuid)
-            .fetch_one(pool)
-            .await
-        {
-            Ok(x) => Ok(User::<Uuid>::from_row(&x)),
-            Err(x) => Err(x),
-        }
+        Ok(User::<Uuid>::from_row(
+            &sqlx::query("SELECT * FROM users WHERE id = $1")
+                .bind(uuid)
+                .fetch_one(pool)
+                .await?,
+        ))
     }
     pub async fn from_username(
         pool: &Pool<Postgres>,
         username: String,
     ) -> Result<Self, sqlx::Error> {
-        match sqlx::query("SELECT * FROM users WHERE username = $1")
-            .bind(username)
-            .fetch_one(pool)
-            .await
-        {
-            Ok(x) => Ok(User::<Uuid>::from_row(&x)),
-            Err(x) => Err(x),
-        }
+        Ok(User::<Uuid>::from_row(
+            &sqlx::query("SELECT * FROM users WHERE username = $1")
+                .bind(username)
+                .fetch_one(pool)
+                .await?,
+        ))
     }
     pub fn from_row(row: &sqlx::postgres::PgRow) -> Self {
         Self {
@@ -87,4 +83,22 @@ impl User<Uuid> {
             id: row.get("id"),
         }
     }
+}
+
+pub async fn username_from_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<String, sqlx::Error> {
+    let row = &sqlx::query("SELECT username FROM users WHERE id = $1")
+        .bind(uuid)
+        .fetch_one(pool)
+        .await?;
+    Ok(row.get::<String, _>("username"))
+}
+pub async fn uuid_from_username(
+    pool: &Pool<Postgres>,
+    username: String,
+) -> Result<Uuid, sqlx::Error> {
+    let row = &sqlx::query("SELECT id FROM users WHERE username = $1")
+        .bind(username)
+        .fetch_one(pool)
+        .await?;
+    Ok(row.get::<Uuid, _>("id"))
 }

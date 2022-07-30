@@ -42,3 +42,5 @@ SET search_path = toaqschema;
 
 GRANT USAGE ON SCHEMA toaqschema TO toakuai;
 GRANT INSERT, UPDATE, DELETE, TRUNCATE ON TABLES TO toakuai;
+
+CREATE EXTENSION pg_trgm;

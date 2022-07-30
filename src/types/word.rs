@@ -58,7 +58,7 @@ impl Word<String> {
     pub fn new() -> Self {
         Self::_new(String::new())
     }
-    pub fn uuid(self) -> Word<Uuid> {
+    pub fn uuid(&self) -> Word<Uuid> {
         self.map(|x| {
             Uuid::parse_str(&x).unwrap_or_else(|e| {
                 eprintln!("Could not parse Word UUID: {}\nError: {}", x, e);
@@ -71,6 +71,9 @@ impl Word<String> {
     }
     pub async fn from_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
         Ok(Word::<Uuid>::from_uuid(pool, uuid).await?.string())
+    }
+    pub async fn count_upvotes(&self, pool: &Pool<Postgres>) -> Result<u64, sqlx::Error> {
+        Word::<Uuid>::count_upvotes(&self.uuid(), pool).await
     }
 }
 impl Word<Uuid> {
@@ -106,5 +109,14 @@ impl Word<Uuid> {
                 .timestamp(),
             edited: row.get("edited"),
         }
+    }
+    pub async fn count_upvotes(&self, pool: &Pool<Postgres>) -> Result<u64, sqlx::Error> {
+        Ok(
+            sqlx::query("SELECT * FROM votes WHERE entry_word = $1 AND is_upvote = TRUE")
+                .bind(self.id)
+                .execute(pool)
+                .await?
+                .rows_affected(),
+        )
     }
 }

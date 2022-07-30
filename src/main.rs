@@ -22,18 +22,32 @@ async fn main() {
 
     let pool = init_sql().await;
 
-    let mut rows = sqlx::query("SELECT * FROM users").fetch(&pool);
-    while let Some(row) = &rows.try_next().await.unwrap() {
-        let user = User::<Uuid>::from_row(row);
-        println!("{:?}", user);
+    // let mut rows = sqlx::query("SELECT * FROM users").fetch(&pool);
+    // while let Some(row) = &rows.try_next().await.unwrap() {
+    //     let user = User::<Uuid>::from_row(row);
+    //     println!("{:?}", user);
+    // }
+
+    // let mut words = sqlx::query("SELECT * FROM words").fetch(&pool);
+    // while let Some(row) = &words.try_next().await.unwrap() {
+    //     let word = Word::<Uuid>::from_row(row);
+    //     println!("UUID: {:?}", word);
+    // }
+
+    let usertest = User::<Uuid>::from_username(&pool, String::from("main"));
+    match usertest.await {
+        Ok(x) => println!("User: {:?}", x),
+        Err(x) => println!("Can't find user\nError: {}", x),
+    }
+    let usertest = User::<Uuid>::from_username(&pool, String::from("invalid"));
+    match usertest.await {
+        Ok(x) => println!("User: {:?}", x),
+        Err(x) => println!("Can't find user\nError: {}", x),
     }
 
-    let mut words = sqlx::query("SELECT * FROM words").fetch(&pool);
-    while let Some(row) = &words.try_next().await.unwrap() {
-        let word = Word::<Uuid>::from_row(row);
-        println!("UUID: {:?}", word);
-        println!("String: {:?}", word.string());
-    }
+    let mut wronguser = User::<String>::new();
+    wronguser.id = "a".to_string();
+    println!("{:?}", wronguser.uuid());
 
     // let again = warp::path("again")
     //     .map(|| println!("Logging"))
