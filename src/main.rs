@@ -1,5 +1,5 @@
-pub mod sql;
-pub mod types;
+mod sql;
+mod types;
 
 use crate::sql::init_sql;
 use crate::types::{comment::Comment, user::User, vote::Vote, word::Word};
@@ -22,12 +22,9 @@ async fn main() {
 
     let pool = init_sql().await;
 
-    let mut user = User::<Uuid>::new();
-
     let mut rows = sqlx::query("SELECT * FROM users").fetch(&pool);
     while let Some(row) = &rows.try_next().await.unwrap() {
-        user.id = row.get("id");
-        user.username = row.get("username");
+        let user = User::<Uuid>::from_row(row);
         println!("{:?}", user);
     }
 

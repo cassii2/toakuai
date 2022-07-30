@@ -35,17 +35,17 @@ impl User<String> {
     pub fn from_row(row: &sqlx::postgres::PgRow) -> Self {
         User::<Uuid>::from_row(row).string()
     }
-    pub async fn get_by_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
-        match User::<Uuid>::get_by_uuid(pool, uuid).await {
+    pub async fn from_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
+        match User::<Uuid>::from_uuid(pool, uuid).await {
             Ok(x) => Ok(x.string()),
             Err(x) => Err(x),
         }
     }
-    pub async fn get_by_username(
+    pub async fn from_username(
         pool: &Pool<Postgres>,
         username: String,
     ) -> Result<Self, sqlx::Error> {
-        match User::<Uuid>::get_by_username(pool, username).await {
+        match User::<Uuid>::from_username(pool, username).await {
             Ok(x) => Ok(x.string()),
             Err(x) => Err(x),
         }
@@ -59,7 +59,7 @@ impl User<Uuid> {
         self.map(|x| x.as_hyphenated().to_string())
     }
 
-    pub async fn get_by_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
+    pub async fn from_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
         match sqlx::query("SELECT * FROM users WHERE id = $1")
             .bind(uuid)
             .fetch_one(pool)
@@ -69,7 +69,7 @@ impl User<Uuid> {
             Err(x) => Err(x),
         }
     }
-    pub async fn get_by_username(
+    pub async fn from_username(
         pool: &Pool<Postgres>,
         username: String,
     ) -> Result<Self, sqlx::Error> {

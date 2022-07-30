@@ -73,7 +73,7 @@ impl Word<Uuid> {
         self.map(|x| x.as_hyphenated().to_string())
     }
 
-    pub async fn get_by_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
+    pub async fn from_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
         match sqlx::query("SELECT * FROM words WHERE id = $1")
             .bind(uuid)
             .fetch_one(pool)

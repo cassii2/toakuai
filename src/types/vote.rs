@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
-use sqlx::{types::Uuid, Pool, Postgres};
+use sqlx::{types::Uuid, Pool, Postgres, Row};
 use std::string::String;
 
 #[derive(Debug, Serialize, Deserialize)]
