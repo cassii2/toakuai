@@ -30,24 +30,77 @@ async fn main() {
 
     // let mut words = sqlx::query("SELECT * FROM words").fetch(&pool);
     // while let Some(row) = &words.try_next().await.unwrap() {
-    //     let word = Word::<Uuid>::from_row(row);
-    //     println!("UUID: {:?}", word);
+    //     let word = Word::<Uuid>::from_row(row).unwrap();
+    //     let (up, _) = word.count_votes(&pool).await.unwrap();
+    //     println!("UUID: {:?}\nVotes: {}", word, up);
     // }
 
-    let usertest = User::<Uuid>::from_username(&pool, String::from("main"));
-    match usertest.await {
-        Ok(x) => println!("User: {:?}", x),
-        Err(x) => println!("Can't find user\nError: {}", x),
-    }
-    let usertest = User::<Uuid>::from_username(&pool, String::from("invalid"));
-    match usertest.await {
-        Ok(x) => println!("User: {:?}", x),
-        Err(x) => println!("Can't find user\nError: {}", x),
-    }
+    loop {
+        let mut buffer = String::new();
+        let mut stdin = std::io::stdin();
+        println!("Select from list:");
+        println!("1: Get");
+        println!("2: Add");
+        println!("3: Delete");
+        println!("\n0: Exit");
+        stdin.read_line(&mut buffer).unwrap();
+        buffer = buffer.trim().to_string();
 
-    let mut wronguser = User::<String>::new();
-    wronguser.id = "a".to_string();
-    println!("{:?}", wronguser.uuid());
+        match buffer.parse::<u32>().unwrap_or_else(|_| {
+            println!("Could not parse \"{}\"", buffer);
+            std::process::exit(1);
+        }) {
+            0 => {
+                break;
+            }
+            1 => {
+                println!("Get what?");
+                println!("1. Word");
+                println!("2. Comment");
+                buffer = String::new();
+                stdin.read_line(&mut buffer).unwrap();
+                buffer = buffer.trim().to_string();
+                println!("Buffer is: {}", buffer);
+                match buffer.parse::<i32>().unwrap() {
+                    1 => {
+                        println!("Enter word: ");
+                        buffer = String::new();
+                        stdin.read_line(&mut buffer).unwrap();
+                        buffer = buffer.trim().to_string();
+                        let word = Word::<Uuid>::from_row(
+                            &sqlx::query("SELECT * FROM words WHERE word = $1")
+                                .bind(buffer.clone())
+                                .fetch_one(&pool)
+                                .await
+                                .unwrap(),
+                        )
+                        .unwrap();
+                        println!("{:?}", word);
+                    }
+                    2 => {
+                        println!("Enter author: ");
+                        buffer = String::new();
+                        stdin.read_line(&mut buffer).unwrap();
+                        buffer = buffer.trim().to_string();
+                        let comment = Comment::<Uuid>::from_row(
+                            &sqlx::query("SELECT * FROM comments WHERE author = (SELECT id FROM users WHERE username = $1)")
+                                .bind(buffer.clone())
+                                .fetch_one(&pool)
+                                .await
+                                .unwrap(),
+                        );
+                        println!("{:?}", comment);
+                    }
+                    _ => {
+                        continue;
+                    }
+                }
+            }
+            _ => {
+                continue;
+            }
+        }
+    }
 
     // let again = warp::path("again")
     //     .map(|| println!("Logging"))

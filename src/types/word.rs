@@ -1,8 +1,10 @@
 use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
-use sqlx::{types::Uuid, Pool, Postgres};
+use sqlx::{postgres::PgRow, types::Uuid, Pool, Postgres};
+use sqlx::{FromRow, Row};
 use std::string::String;
+
+use super::comment::Comment;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Word<T> {
@@ -67,28 +69,28 @@ impl Word<String> {
             })
         })
     }
-    pub fn from_row(row: &sqlx::postgres::PgRow) -> Self {
-        Word::<Uuid>::from_row(row).string()
-    }
     pub async fn from_uuid(pool: &Pool<Postgres>, uuid: Uuid) -> Result<Self, sqlx::Error> {
         Ok(Word::<Uuid>::from_uuid(pool, uuid).await?.string())
     }
-
-    pub async fn count_votes(&self, pool: &Pool<Postgres>) -> Result<(u64, u64), sqlx::Error> {
-        let mut votes = sqlx::query("SELECT * FROM votes WHERE entry_word = $1")
-            .bind(self.id.clone())
-            .fetch(pool);
-        let mut up = 0;
-        let mut down = 0;
-        while let Some(row) = &votes.try_next().await? {
-            if row.get::<bool, _>("is_upvote") == true {
-                up += 1;
-            } else {
-                down += 1;
-            }
-        }
-        Ok((up, down))
-    }
+    // pub fn from_row(row: &sqlx::postgres::PgRow) -> Self {
+    //     Word::<Uuid>::from_row(row).string()
+    // }
+    //
+    // pub async fn count_votes(&self, pool: &Pool<Postgres>) -> Result<(u64, u64), sqlx::Error> {
+    //     let mut votes = sqlx::query("SELECT * FROM votes WHERE entry_word = $1")
+    //         .bind(self.id.clone())
+    //         .fetch(pool);
+    //     let mut up = 0;
+    //     let mut down = 0;
+    //     while let Some(row) = &votes.try_next().await? {
+    //         if row.get::<bool, _>("is_upvote") == true {
+    //             up += 1;
+    //         } else {
+    //             down += 1;
+    //         }
+    //     }
+    //     Ok((up, down))
+    // }
 }
 impl Word<Uuid> {
     pub fn new() -> Self {
@@ -104,25 +106,25 @@ impl Word<Uuid> {
             .fetch_one(pool)
             .await
         {
-            Ok(x) => Ok(Word::<Uuid>::from_row(&x)),
+            Ok(x) => Ok(Word::<Uuid>::from_row(&x)?),
             Err(x) => Err(x),
         }
     }
-    pub fn from_row(row: &sqlx::postgres::PgRow) -> Self {
-        Self {
-            id: row.get("id"),
-            word: row.get("word"),
-            author: row.get("author"),
-            definition: row.get("definition"),
-            forked_from: row.get("forked_from"),
-            lang: row.get("lang"),
-            gloss: row.get("gloss"),
-            frame: row.get("frame"),
+    pub fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            id: row.try_get("id")?,
+            word: row.try_get("word")?,
+            author: row.try_get("author")?,
+            definition: row.try_get("definition")?,
+            forked_from: row.try_get("forked_from")?,
+            lang: row.try_get("lang")?,
+            gloss: row.try_get("gloss")?,
+            frame: row.try_get("frame")?,
             created: row
-                .get::<sqlx::types::chrono::NaiveDateTime, _>("created")
+                .try_get::<sqlx::types::chrono::NaiveDateTime, _>("created")?
                 .timestamp(),
-            edited: row.get("edited"),
-        }
+            edited: row.try_get("edited")?,
+        })
     }
 
     // returns (upvotes, downvotes)
@@ -140,5 +142,25 @@ impl Word<Uuid> {
             }
         }
         Ok((up, down))
+    }
+    pub async fn get_comments(
+        &self,
+        pool: &Pool<Postgres>,
+    ) -> Result<Vec<Comment<Uuid>>, sqlx::Error> {
+        let mut rows = sqlx::query("SELECT * FROM comments WHERE parent_word = $1")
+            .bind(self.id)
+            .fetch(pool);
+        let mut ret = Vec::<Comment<Uuid>>::new();
+        while let Some(row) = &rows.try_next().await? {
+            let comment = Comment::<Uuid>::from_row(row);
+            ret.push(comment);
+        }
+        return Ok(ret);
+    }
+}
+
+impl<'r> FromRow<'r, PgRow> for Word<Uuid> {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Word::<Uuid>::from_row(row)
     }
 }
